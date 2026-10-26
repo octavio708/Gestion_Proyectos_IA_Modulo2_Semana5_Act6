@@ -1,0 +1,20 @@
+# Entornos virtuales y dependencias
+venv/
+env/
+__pycache__/
+.ipynb_checkpoints/
+
+# Datasets locales pesados
+datos/datos_ini/*.csv
+*.csv
+
+# MLflow y artefactos locales
+mlruns/
+*.pkl
+*.h5
+*.joblib
+
+# Sistema operativo y IDEs
+.DS_Store
+.vscode/
+.idea/
