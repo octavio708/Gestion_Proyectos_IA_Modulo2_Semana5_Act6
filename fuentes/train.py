@@ -73,6 +73,7 @@ def entrenar_evaluar_modelos_gpu(X_train, X_test, y_train, y_test, preprocessor)
         mlflow.log_artifact("cm_xgboost_gpu.png")
         mlflow.log_artifact("threshold_tuning_plot.png")
         mlflow.log_artifact("curva_roc_comparativa.png")
+    return pipeline_xgb
 
 def generar_y_guardar_cm(y_true, y_pred, filename, title):
     cm = confusion_matrix(y_true, y_pred)
@@ -135,6 +136,8 @@ if __name__ == "__main__":
     from sklearn.preprocessing import StandardScaler
     from sklearn.compose import ColumnTransformer
     from sklearn.impute import SimpleImputer
+    import joblib
+    import os
 
     print("[INFO] Cargando dataset para entrenamiento...")
     df = pd.read_csv("datos/datos_ini/credit_scoring.csv")
@@ -150,8 +153,8 @@ if __name__ == "__main__":
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    # Preprocesador básico (imputación y escalado)
-    numeric_features = X.select_dtypes(include=['int64', 'float64']).columns
+    # Seleccionar explícitamente solo columnas de tipo número entero o flotante de numpy/pandas
+    numeric_features = X.select_dtypes(include=['number']).columns.tolist()
     preprocessor = ColumnTransformer(
         transformers=[
             ('num', Pipeline([
@@ -162,5 +165,13 @@ if __name__ == "__main__":
     )
 
     print("[INFO] Iniciando pipeline de entrenamiento y evaluación en GPU...")
-    entrenar_evaluar_modelos_gpu(X_train, X_test, y_train, y_test, preprocessor)
+    
+    # <-- CAPTURAMOS EL MODELO RETORNADO POR LA FUNCION
+    pipeline_xgb = entrenar_evaluar_modelos_gpu(X_train, X_test, y_train, y_test, preprocessor)
+    
     print("[✔] Proceso de entrenamiento y registro en MLflow completado con éxito.")
+
+    # Guardar el modelo serializado para la API
+    os.makedirs("fuentes", exist_ok=True)
+    joblib.dump(pipeline_xgb, "fuentes/model_pipeline.pkl")
+    print("[INFO] Modelo serializado y guardado exitosamente en fuentes/model_pipeline.pkl")
