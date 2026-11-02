@@ -1,24 +1,85 @@
-# Pipeline de MLOps: Credit Scoring con Aceleracion por GPU y MLflow
+# API de Credit Scoring - XGBoost GPU & FastAPI
 
-## 1. Descripcion del Proyecto
-Este repositorio contiene el desarrollo de la Actividad 6 (Gestion de Proyectos de Inteligencia Artificial), implementando un pipeline completo de MLOps para el conjunto de datos de riesgo crediticio (*Give Me Some Credit*). El proyecto integra entrenamiento acelerado por hardware dedicado, optimizacion de umbrales basados en costos de negocio y trazabilidad experimental con MLflow.
+Servicio de inferencia en tiempo real para la evaluación de riesgo crediticio, desarrollado como parte del **Módulo 2 (Semana 5) - Gestión de Proyectos de Inteligencia Artificial**. El sistema implementa un modelo de Machine Learning basado en **XGBoost** entrenado con aceleración por GPU (CUDA), integrado en una API de alto rendimiento con **FastAPI** y contenerizado mediante **Docker**.
 
-## 2. Stack Tecnologico
-- Lenguaje: Python 3.13
-- Modelado: Scikit-Learn, XGBoost (con soporte CUDA y metodo de histograma en GPU).
-- Trazabilidad: MLflow v3.17.2.
-- Hardware: NVIDIA GeForce RTX 4070 Ti / Intel Core i7-12700.
+---
 
-## 3. Estructura del Repositorio
-- `fuentes/`: Contiene los scripts principales de entrenamiento, procesamiento y evaluacion (`train.py`, etc.).
-- `datos/`: Directorio de almacenamiento de los conjuntos de datos iniciales (`credit_scoring.csv`).
-- `mlruns/`: Almacenamiento local de experimentos, metricas y artefactos registrados por MLflow.
+## 🚀 Arquitectura y Estructura del Proyecto
 
-## 4. Instrucciones de Ejecucion
-1. Activar el entorno virtual:
-   source venv/Scripts/activate
-2. Ejecutar el pipeline de entrenamiento acelerado por GPU:
-   python fuentes/train.py
-3. Levantar la interfaz web de MLflow para consultar metricas y artefactos:
-   export MLFLOW_ALLOW_FILE_STORE=true && mlflow ui --backend-store-uri ./mlruns --host 127.0.0.1 --port 5000
-4. Acceder al navegador en: http://127.0.0.1:5000
+```text
+Gestion_Proyectos_IA_Modulo2_Semana5_Act6/
+├── data/
+│   └── credit_data.csv        # Dataset de entrenamiento
+├── fuentes/
+│   ├── api_app.py             # Código fuente de la API FastAPI y endpoints
+│   ├── train.py               # Script de entrenamiento y tracking con MLflow
+│   └── model_pipeline.pkl     # Artefacto serializado del modelo y preprocesamiento
+├── Dockerfile                 # Definición de la imagen del contenedor
+├── requirements.txt           # Dependencias estandarizadas del proyecto
+└── README.md                  # Documentación oficial del proyecto
+```
+
+---
+
+## 🛠️ Requisitos Técnicos y Dependencias
+
+El proyecto se encuentra estricta y sincronizado bajo las siguientes versiones clave para evitar errores de deserialización e inferencia:
+
+- **Python:** `3.10-slim`
+- **Scikit-Learn:** `1.5.2`
+- **XGBoost:** `2.0.3`
+- **FastAPI & Uvicorn:** `0.110.0` / `0.28.0`
+- **Pandas & NumPy:** `2.2.1` / `1.26.4`
+
+---
+
+## 🐳 Instrucciones de Despliegue con Docker
+
+### 1. Construir la imagen Docker (sin caché)
+Abre tu terminal en la raíz del repositorio y ejecuta el siguiente comando:
+```bash
+docker build --no-cache -t credit-scoring-api:latest .
+```
+
+### 2. Ejecutar el contenedor
+```bash
+docker run -d --name credit-scoring-container -p 8000:8000 credit-scoring-api:latest
+```
+
+### 3. Verificar el estado de la API
+Puedes acceder a la documentación interactiva (Swagger UI) desde tu navegador en:
+👉 `http://localhost:8000/docs`
+
+---
+
+## 🧪 Validación de Inferencia (cURL)
+
+Puedes probar el servicio enviando una solicitud POST al endpoint `/predict`:
+
+```bash
+curl -X 'POST' \
+  'http://localhost:8000/predict' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "revolving_utilization": 0.85,
+    "age": 42,
+    "debt_ratio": 0.45,
+    "monthly_income": 5000.0,
+    "open_credit_lines": 8,
+    "times_90_days_late": 2,
+    "number_dependents": 1
+  }'
+```
+
+**Respuesta esperada del servidor:**
+```json
+{
+  "prediccion_clase": 1,
+  "resultado": "Fraude / Alto Riesgo",
+  "probabilidad_default": 0.757,
+  "probabilidad_legitima": 0.243,
+  "umbral_utilizado": 0.44
+}
+```
+*(Nota: Las decisiones de negocio aplican el umbral óptimo económico de default $\text{umbral} = 0.44$).*
